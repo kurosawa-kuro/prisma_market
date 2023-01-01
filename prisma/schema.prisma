@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int           @id @default(autoincrement())
+  name       String
+  email      String        @unique
+  password   String
+  role       String        @default("user")
+  avatar     String?
+  profile    Profile?
+  groups     User_Groups[]
+  posts      Post[]
+  likes      Like[]
+  followedBy Follows[]     @relation("following")
+  following  Follows[]     @relation("follower")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Profile {
+  id           Int     @id @default(autoincrement())
+  user_id      Int     @unique
+  user         User    @relation(fields: [user_id], references: [id])
+  address      String?
+  phone        String?
+  mobile_phone String?
+  bio          String?
+  memo         String?
+}
+
+model Group {
+  id    Int           @id @default(autoincrement())
+  name  String
+  users User_Groups[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User_Groups {
+  user_id  Int
+  user     User  @relation(fields: [user_id], references: [id])
+  group_id Int
+  group    Group @relation(fields: [group_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([user_id, group_id])
+}
+
+model Post {
+  id        Int         @id @default(autoincrement())
+  user_id   Int
+  user      User        @relation(fields: [user_id], references: [id])
+  title     String      @db.VarChar(255)
+  content   String?
+  image_url String?     @db.VarChar(255)
+  published Boolean     @default(false)
+  likes     Like[]
+  Tags      Tag_Posts[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id    Int         @id @default(autoincrement())
+  name  String
+  posts Tag_Posts[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag_Posts {
+  post_id Int
+  post    Post @relation(fields: [post_id], references: [id])
+  Tag_id  Int
+  Tag     Tag  @relation(fields: [Tag_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([post_id, Tag_id])
+}
+
+model Follows {
+  follower     User @relation("follower", fields: [follower_id], references: [id])
+  follower_id  Int
+  following    User @relation("following", fields: [following_id], references: [id])
+  following_id Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([follower_id, following_id])
+}
+
+model Like {
+  user_id Int  @unique
+  user    User @relation(fields: [user_id], references: [id])
+  post_id Int  @unique
+  post    Post @relation(fields: [post_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([user_id, post_id])
+}
