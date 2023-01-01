@@ -8,5 +8,8 @@ npx prisma migrate dev --name init
 npm install @prisma/client
 npx ts-node index.ts
 ```
-![2022-12-31_00h13_32](https://user-images.githubusercontent.com/15902862/210085272-3d6e0096-c52f-4067-afff-cf4308afd353.png)
+
+![2023-01-01_17h09_06](https://user-images.githubusercontent.com/15902862/210164604-f4baf4c7-37b2-4e08-892b-eb4da78c7ba3.png)
+
+
 
