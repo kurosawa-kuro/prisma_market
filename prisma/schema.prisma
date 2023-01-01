@@ -11,111 +11,170 @@ datasource db {
 }
 
 model User {
-  id         Int           @id @default(autoincrement())
-  name       String
-  email      String        @unique
-  password   String
-  role       String        @default("user")
-  avatar     String?
-  profile    Profile?
-  groups     User_Groups[]
-  posts      Post[]
-  likes      Like[]
-  followedBy Follows[]     @relation("following")
-  following  Follows[]     @relation("follower")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String             @id @default(uuid())
+  name      String
+  phone     String             @unique
+  email     String             @unique
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  orders    Order[]
+  managed   StoreManager[]
+  followed  StoreFollower[]
+  carts     Cart[]
+  watchlist WatchlistProduct[]
+  cards     Card[]
 }
 
-model Profile {
-  id           Int     @id @default(autoincrement())
-  user_id      Int     @unique
-  user         User    @relation(fields: [user_id], references: [id])
-  address      String?
-  phone        String?
-  mobile_phone String?
-  bio          String?
-  memo         String?
+model Store {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  website     String?
+  twitter     String?         @db.VarChar(15)
+  instagram   String?         @db.VarChar(30)
+  revenue     Int             @default(0)
+  payedOut    Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  image       Image?
+  products    Product[]
+  orders      Order[]
+  managers    StoreManager[]
+  followers   StoreFollower[]
+  carts       Cart[]
+  payouts     Payout[]
 }
 
-model Group {
-  id    Int           @id @default(autoincrement())
-  name  String
-  users User_Groups[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Product {
+  id          String             @id @default(uuid())
+  name        String
+  description String
+  unitPrice   Int
+  quantity    Int                @default(0)
+  storeId     String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  images      Image[]
+  orders      OrderProduct[]
+  carts       CartProduct[]
+  watchlists  WatchlistProduct[]
+  store       Store              @relation(fields: [storeId], references: [id])
 }
 
-model User_Groups {
-  user_id  Int
-  user     User  @relation(fields: [user_id], references: [id])
-  group_id Int
-  group    Group @relation(fields: [group_id], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@id([user_id, group_id])
+model Order {
+  id        String         @id @default(uuid())
+  userId    String
+  storeId   String
+  status    OrderStatus    @default(Pending)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  products  OrderProduct[]
+  user      User           @relation(fields: [userId], references: [id])
+  store     Store          @relation(fields: [storeId], references: [id])
 }
 
-model Post {
-  id        Int         @id @default(autoincrement())
-  user_id   Int
-  user      User        @relation(fields: [user_id], references: [id])
-  title     String      @db.VarChar(255)
-  content   String?
-  image_url String?     @db.VarChar(255)
-  published Boolean     @default(false)
-  likes     Like[]
-  Tags      Tag_Posts[]
+model OrderProduct {
+  orderId   String
+  productId String
+  unitPrice Int
+  quantity  Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@unique([orderId, productId])
 }
 
-model Tag {
-  id    Int         @id @default(autoincrement())
-  name  String
-  posts Tag_Posts[]
+model Cart {
+  id        String        @id @default(uuid())
+  userId    String
+  storeId   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products  CartProduct[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@unique([userId, storeId])
 }
 
-model Tag_Posts {
-  post_id Int
-  post    Post @relation(fields: [post_id], references: [id])
-  Tag_id  Int
-  Tag     Tag  @relation(fields: [Tag_id], references: [id])
+model CartProduct {
+  cartId    String
+  productId String
+  quantity  Int
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@id([post_id, Tag_id])
+  @@unique([cartId, productId])
 }
 
-model Follows {
-  follower     User @relation("follower", fields: [follower_id], references: [id])
-  follower_id  Int
-  following    User @relation("following", fields: [following_id], references: [id])
-  following_id Int
+model WatchlistProduct {
+  userId    String
+  productId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@id([follower_id, following_id])
+  @@unique([userId, productId])
 }
 
-model Like {
-  user_id Int  @unique
-  user    User @relation(fields: [user_id], references: [id])
-  post_id Int  @unique
-  post    Post @relation(fields: [post_id], references: [id])
-
+model Image {
+  id        String   @id @default(uuid())
+  storeId   String?  @unique
+  productId String?
+  path      String   @db.VarChar(2083)
+  publicId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  store     Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
 
-  @@id([user_id, post_id])
+model StoreManager {
+  storeId   String
+  managerId String
+  store     Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  manager   User   @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, managerId])
+}
+
+model StoreFollower {
+  storeId    String
+  followerId String
+  store      Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  follower   User   @relation(fields: [followerId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, followerId])
+}
+
+model Card {
+  id                String @id @default(uuid())
+  userId            String
+  email             String
+  authorizationCode String
+  cardType          String
+  last4             String
+  expMonth          String
+  expYear           String
+  bin               String
+  bank              String
+  signature         String @unique
+  countryCode       String
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payout {
+  id        String   @id @default(uuid())
+  storeId   String
+  amount    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+enum OrderStatus {
+  Pending
+  Processing
+  Cancelled
+  Completed
+  Delivered
 }
